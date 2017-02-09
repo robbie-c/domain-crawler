@@ -116,13 +116,14 @@ func ParseHtml(url string, response *http.Response, chUrls chan string, chFinish
 
 	inStyleTag := false
 
+Loop:
 	for {
 		tt := z.Next()
 
 		switch {
 		case tt == html.ErrorToken:
 			// End of the document, we're done
-			return
+			break Loop
 		case tt == html.StartTagToken:
 			t := z.Token()
 
@@ -166,6 +167,10 @@ func ParseHtml(url string, response *http.Response, chUrls chan string, chFinish
 		}
 	}
 
+	node.resources = removeDuplicates(node.resources)
+	node.links = removeDuplicates(node.links)
+}
+
 func ParseCss(url string, response *http.Response, chUrls chan string, chFinishedParse chan Node) {
 	b := response.Body
 	defer b.Close() // close Body when the function returns
@@ -185,4 +190,17 @@ func ParseCss(url string, response *http.Response, chUrls chan string, chFinishe
 
 	node.resources = removeDuplicates(node.resources)
 }
+
+func removeDuplicates(arr []string) []string {
+	output := []string{}
+	encountered := make(map[string]bool)
+
+	for _, s := range arr {
+		if !encountered[s] {
+			encountered[s] = true
+			output = append(output, s)
+		}
+	}
+
+	return output
 }
