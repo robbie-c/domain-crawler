@@ -44,7 +44,10 @@ func main() {
 		switch n := node.(type) {
 		case CSSNode:
 			fmt.Printf("CSS: %s\n", n.path)
-			fmt.Printf("- resources: %s\n", n.resources)
+			fmt.Print("- resources:\n")
+			for _, resource := range n.resources {
+				fmt.Printf("  - %s\n", resource)
+			}
 		}
 	}
 }
