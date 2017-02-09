@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gorilla/css/scanner"
 	"golang.org/x/net/html"
+	"io/ioutil"
 	"net/http"
 	"regexp"
 )
@@ -52,7 +53,30 @@ func handleLinkTag(token html.Token, node *HTMLNode, pageUrl string, chUrls chan
 
 var urlRe *regexp.Regexp = regexp.MustCompile(`url\((.*)\)`)
 
-func handleStyleContents(cssText string, node *HTMLNode, pageUrl string, chUrls chan string) {
+func handleCssUrl(rawUrl string, node Node, pageUrl string, chUrls chan string) {
+	firstChar := rawUrl[0:1]
+	lastChar := rawUrl[len(rawUrl)-1:]
+
+	if (firstChar == "\"" && lastChar == "\"") || (firstChar == "'" && lastChar == "'") {
+		rawUrl = rawUrl[1 : len(rawUrl)-1]
+	}
+
+	if rawUrl != "" {
+		url := fixUrl(rawUrl, pageUrl)
+		switch n := node.(type) {
+		case *HTMLNode:
+			n.resources = append(n.resources, url)
+		case *CSSNode:
+			n.resources = append(n.resources, url)
+		}
+
+		if chUrls != nil {
+			chUrls <- url
+		}
+	}
+}
+
+func handleStyleContents(cssText string, node Node, pageUrl string, chUrls chan string) {
 	// This could really be a lot better, as it doesn't distinguish between @import urls and urls elsewhere. The
 	// former would need to be added to the list of urls to scrape, whereas the latter wouldn't. This means we'll
 	// end up GETting a bunch of fonts and images etc which we don't technically need to.
@@ -65,21 +89,7 @@ func handleStyleContents(cssText string, node *HTMLNode, pageUrl string, chUrls 
 		switch token.Type {
 		case scanner.TokenURI:
 			rawUrl := urlRe.FindStringSubmatch(token.Value)[1]
-
-			firstChar := rawUrl[0:1];
-			lastChar := rawUrl[len(rawUrl) - 1:]
-
-			if ((firstChar == "\"" && lastChar == "\"") || (firstChar == "'" && lastChar == "'")) {
-				rawUrl = rawUrl[1:len(rawUrl) - 1]
-			}
-
-			if rawUrl != "" {
-				url := fixUrl(rawUrl, pageUrl)
-				node.resources = append(node.resources, url)
-				if (chUrls != nil) {
-					chUrls <- url
-				}
-			}
+			handleCssUrl(rawUrl, node, pageUrl, chUrls)
 		}
 	}
 }
@@ -155,4 +165,24 @@ func ParseHtml(url string, response *http.Response, chUrls chan string, chFinish
 			}
 		}
 	}
+
+func ParseCss(url string, response *http.Response, chUrls chan string, chFinishedParse chan Node) {
+	b := response.Body
+	defer b.Close() // close Body when the function returns
+
+	node := CSSNode{path: url}
+	defer func() { chFinishedParse <- node }()
+
+	bytes, err := ioutil.ReadAll(b)
+
+	if err != nil {
+		return
+	}
+
+	cssText := string(bytes[:])
+
+	handleStyleContents(cssText, &node, url, chUrls)
+
+	node.resources = removeDuplicates(node.resources)
+}
 }
