@@ -148,11 +148,8 @@ func Crawl(rawHost string) bool {
 		case u := <-chUrls:
 			// URL found by the parser
 			if urls[u] == nil {
-				// fmt.Printf("New URL: %s\n", u);
-				// urls[u] = UnparsedNode{u}
-				// go fetchAndParse(u, host, chUrls, chFinishedParse)
-			} else {
-				// fmt.Printf("Old URL: %s\n", u);
+				urls[u] = UnparsedNode{u}
+				go fetchAndParse(u, host, chUrls, chFinishedParse)
 			}
 		case node := <-chFinishedParse:
 			// finished parsing, all dependent URLs have been added
