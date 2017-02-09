@@ -30,9 +30,8 @@ func (node HTMLNode) Path() string {
 }
 
 type CSSNode struct {
-	path          string
-	externalLinks []string
-	resources     []string
+	path      string
+	resources []string
 }
 
 func (node CSSNode) Path() string {
@@ -88,7 +87,6 @@ func fetchAndParse(u string, host string, chUrls chan string, chFinishedParse ch
 	}
 
 	if !isInternal {
-		fmt.Printf("External link %s\n", u)
 		chFinishedParse <- ExternalNode{u}
 		return nil
 	}
@@ -105,24 +103,24 @@ func fetchAndParse(u string, host string, chUrls chan string, chFinishedParse ch
 		return err
 	}
 
-	fmt.Printf("Mime type: %s\n", mimeType)
-
-	if strings.Contains(mimeType, "text/html") {
+	switch {
+	case strings.Contains(mimeType, "text/html"):
 		ParseHtml(u, response, chUrls, chFinishedParse)
-		return nil
-	} else if strings.Contains(mimeType, "text/css") {
-
+	case strings.Contains(mimeType, "text/css"):
+		ParseCss(u, response, chUrls, chFinishedParse)
+	default:
+		chFinishedParse <- ResourceNode{u}
 	}
 
 	return nil
 }
 
-func Crawl(rawHost string) bool {
+func Crawl(rawHost string) map[string]Node {
 	initialUrl, host, err := ParseRawHost(rawHost)
 
 	if err != nil {
 		fmt.Printf("Failed to parse host: %s\n", err)
-		return false
+		return nil
 	}
 
 	fmt.Printf("Crawling %s in progress...\n", initialUrl)
@@ -158,8 +156,5 @@ func Crawl(rawHost string) bool {
 		}
 	}
 
-	fmt.Print("Done.\n")
-	fmt.Printf("%s\n", urls)
-
-	return true
+	return urls
 }

@@ -1,7 +1,10 @@
 package main
 
-import "os"
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"strings"
+)
 
 func usage() {
 	fmt.Print("Usage: domain-crawler example.com\n")
@@ -15,7 +18,33 @@ func main() {
 
 	var domain = os.Args[1]
 
-	response := Crawl(domain)
+	if !strings.HasPrefix(domain, "https://") && !strings.HasPrefix(domain, "http://") {
+		domain = "http://" + domain
+	}
 
-	fmt.Printf("Crawling success %b...\n", response)
+	urlMap := Crawl(domain)
+
+	for _, node := range urlMap {
+		switch n := node.(type) {
+		case HTMLNode:
+
+			fmt.Printf("Page: %s\n", n.path)
+			fmt.Print("- links:\n")
+			for _, link := range n.links {
+				fmt.Printf("  - %s\n", link)
+			}
+			fmt.Print("- resources:\n")
+			for _, resource := range n.resources {
+				fmt.Printf("  - %s\n", resource)
+			}
+		}
+	}
+
+	for _, node := range urlMap {
+		switch n := node.(type) {
+		case CSSNode:
+			fmt.Printf("CSS: %s\n", n.path)
+			fmt.Printf("- resources: %s\n", n.resources)
+		}
+	}
 }
