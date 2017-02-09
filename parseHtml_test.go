@@ -1,10 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 	"testing"
-	"fmt"
 )
 
 const ExampleUrl = "http://www.example.com"
@@ -15,7 +15,7 @@ func assertHasLink(t *testing.T, node *HTMLNode, url string) {
 			return
 		}
 	}
-	fmt.Printf("Expected %s to contain %s\n", node.resources, url);
+	fmt.Printf("Expected %s to contain %s\n", node.resources, url)
 	t.Fail()
 }
 
@@ -25,7 +25,7 @@ func assertHasResource(t *testing.T, node *HTMLNode, url string) {
 			return
 		}
 	}
-	fmt.Printf("Expected %s to contain %s\n", node.resources, url);
+	fmt.Printf("Expected %s to contain %s\n", node.resources, url)
 	t.Fail()
 }
 
