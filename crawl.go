@@ -94,12 +94,16 @@ func fetchAndParse(u string, host string, chUrls chan string, chFinishedParse ch
 	response, err := http.Get(u)
 
 	if err != nil {
+		chFinishedParse <- ErrorNode{u}
 		return err
 	}
+
+	defer response.Body.Close()
 
 	mimeType, err := getOrGuessMimeType(response, u)
 
 	if err != nil {
+		chFinishedParse <- ErrorNode{u}
 		return err
 	}
 

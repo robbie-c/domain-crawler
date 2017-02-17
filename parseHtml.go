@@ -107,7 +107,6 @@ func handleInlineCss(token html.Token, node *HTMLNode, pageUrl string) {
 
 func ParseHtml(url string, response *http.Response, chUrls chan string, chFinishedParse chan Node) {
 	b := response.Body
-	defer b.Close() // close Body when the function returns
 
 	node := HTMLNode{path: url}
 	defer func() { chFinishedParse <- node }()
